@@ -1,3 +1,0 @@
-/home/namaek_2/Documents/s-developer-2/clang/send-arp-test/cmake-build-debug/CMakeFiles/send_arp_test.dir
-/home/namaek_2/Documents/s-developer-2/clang/send-arp-test/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/namaek_2/Documents/s-developer-2/clang/send-arp-test/cmake-build-debug/CMakeFiles/rebuild_cache.dir
