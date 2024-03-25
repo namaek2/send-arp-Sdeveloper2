@@ -1,5 +1,6 @@
 #include "mac.h"
 
+
 Mac::Mac(const std::string& r) {
 	std::string s;
 	for(char ch: r) {
@@ -20,9 +21,10 @@ Mac::operator std::string() const {
 }
 
 Mac Mac::randomMac() {
-	Mac res;
+    Mac res;
+    srand(time(NULL));
 	for (int i = 0; i < SIZE; i++)
-		res.mac_[i] = uint8_t(rand() % 256);
+        res.mac_[i] = uint8_t(rand() % 256);
 	res.mac_[0] &= 0x7F;
 	return res;
 }
