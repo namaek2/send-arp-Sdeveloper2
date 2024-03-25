@@ -1,5 +1,7 @@
 build*/
-.idea/
+.idea
 *.user
 *.o
 send-arp-test
+cmake-build-debug/
+CMakeLists.txt
